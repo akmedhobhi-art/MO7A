@@ -1,53 +1,64 @@
 import os
 import yt_dlp
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
 TOKEN = os.environ.get("BOT_TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("أهلاً بك! أرسل لي رابط فيديو من (TikTok, Instagram, Reels) وسأقوم بتحميله لك بدون علامة مائية.")
+    keyboard = [
+        [InlineKeyboardButton("تحميل بدون علامه مائيه", callback_data="download_prompt")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "أهلاً بك في بوت MO7A لتحميل الفيديوهات! اضغط على الزر أدناه لبدء التحميل:",
+        reply_markup=reply_markup
+    )
 
-async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    url = update.message.text
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
     
-    # التأكد أن الرسالة تحتوي على رابط
-    if not url.startswith(("http://", "https://")):
-        return
+    if query.data == "download_prompt":
+        context.user_data['waiting_for_url'] = True
+        await query.message.reply_text("أرسل الرابط الذي تريد تحميله الآن 🔗:")
 
-    msg = await update.message.reply_text("جاري تحميل الفيديو، انتظر لحظات... ⏳")
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    
+    if text.startswith(("http://", "https://")):
+        msg = await update.message.reply_text("جاري تحميل الفيديو، انتظر لحظات... ⏳")
 
-    # إعدادات yt-dlp لتحميل أفضل جودة بدون علامة مائية
-    ydl_opts = {
-        'format': 'bestvideo+bestaudio/best',
-        'outtmpl': 'downloaded_video.%(ext)s',
-        'quiet': True,
-        'no_warnings': True,
-    }
+        ydl_opts = {
+            'format': 'bestvideo+bestaudio/best',
+            'outtmpl': 'downloaded_video.%(ext)s',
+            'quiet': True,
+            'no_warnings': True,
+        }
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(text, download=True)
+                filename = ydl.prepare_filename(info)
 
-        # إرسال الفيديو للمستخدم
-        with open(filename, 'rb') as video_file:
-            await update.message.reply_video(video=video_file, caption="تم التحميل بنجاح! ✨")
+            with open(filename, 'rb') as video_file:
+                await update.message.reply_video(video=video_file, caption="تم التحميل بنجاح! ✨")
 
-        # حذف الملف من السيرفر بعد الإرسال لتوفير المساحة
-        if os.path.exists(filename):
-            os.remove(filename)
-        await msg.delete()
+            if os.path.exists(filename):
+                os.remove(filename)
+            await msg.delete()
 
-    except Exception as e:
-        await msg.edit_text("حدث خطأ أثناء تحميل الفيديو، تأكد من صحة الرابط وجرب مرة أخرى.")
+        except Exception as e:
+            await msg.edit_text("حدث خطأ أثناء تحميل الفيديو، تأكد من صحة الرابط وجرب مرة أخرى.")
+    else:
+        await update.message.reply_text("من فضلك اضغط على زر التحميل أولاً أو أرسل رابطاً صحيحاً.")
 
 def main():
     app = Application.builder().token(TOKEN).build()
     
     app.add_handler(CommandHandler("start", start))
-    # استقبال أي نص يحتوي على رابط
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, download_video))
+    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     app.run_polling()
 
