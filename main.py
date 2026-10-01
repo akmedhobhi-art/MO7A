@@ -1,6 +1,7 @@
+import os
 import logging
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # إعداد السجلات
 logging.basicConfig(
@@ -8,26 +9,48 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-# 1. أمر /start
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("أهلاً بك! البوت يعمل بنجاح وتحت سيطرتك الكاملة 🚀")
+TOKEN = os.getenv("BOT_TOKEN")
 
-# 2. الرد على الرسائل
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
-    if "مرحبا" in text or "أهلا" in text:
-        await update.message.reply_text("أهلاً بك! كيف يمكنني مساعدتك؟")
-    else:
-        await update.message.reply_text(f"وصلتني رسالتك: {update.message.text}")
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [
+            InlineKeyboardButton("• عربي ☪️ •", callback_data='ar'),
+            InlineKeyboardButton("• english ✴️ •", callback_data='en'),
+            InlineKeyboardButton("رق☘️عه", callback_data='ruqah')
+        ],
+        [
+            InlineKeyboardButton("• الرموز ⚛️ •", callback_data='symbols')
+        ],
+        [
+            InlineKeyboardButton("تحميل بدون علامه مائيه 😎", callback_data='download_no_wm')
+        ],
+        [
+            InlineKeyboardButton("FAKE NUMBER 😍", callback_data='fake_number')
+        ]
+    ]
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    welcome_text = (
+        "(أحمد) • أهلا بك في بوت الزخرفة •\n"
+        "- اختر •من الاسفل ، ☪️\n"
+        "--------------------\n"
+        "WELCOME TO THE DECORATION BOT\n"
+        "CHOOSE WHAT YOU WANT FROM THE BOTTOM 🏺"
+    )
+    
+    await update.message.reply_text(welcome_text, reply_markup=reply_markup)
+
+def main():
+    if not TOKEN:
+        print("Error: BOT_TOKEN variable is not set!")
+        return
+
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    
+    print("Bot is running...")
+    app.run_polling()
 
 if __name__ == '__main__':
-    # تم وضع التوكن الخاص بك هنا جاهزاً
-    TOKEN = "8972769903:AAFr4BRrg9QohhN6Ph1y7RyqP2453PS7gxs"
-    
-    app = ApplicationBuilder().token(TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    print("البوت يعمل...")
-    app.run_polling()
+    main()
