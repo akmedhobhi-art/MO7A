@@ -1,24 +1,60 @@
 import os
+import random
 import yt_dlp
 from PIL import Image
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
 TOKEN = os.environ.get("BOT_TOKEN")
+ADMIN_ID = 6216543508  # الآيدي الخاص بك للإحصائيات
 
-# ضع هنا الآيدي الحقيقي لحسابك على تيليجرام لكي يعمل أمر الإحصائيات معك وحدك
-ADMIN_ID = 6216543508  # استبدل هذا الرقم بالآيدي الخاص بك
+# قاموس الأرقام الوهمية للدول مع الأعلام
+FAKE_NUMBERS = {
+    "germany": [
+        "4915234567890", "4915798765432", "4917611223344", "4915155667788", "4915999887766",
+        "4917244332211", "4916388990011", "4917855443322", "4915211223344", "4917099887766"
+    ],
+    "lebanon": [
+        "9613508860", "96170123456", "96171987654", "96181112233", "96176445566",
+        "96179332211", "96178554433", "96136677889", "96170998877", "96171223344"
+    ],
+    "vietnam": [
+        "84912345678", "84987654321", "84903111222", "84934555666", "84975888999",
+        "84962333444", "84901222333", "84989444555", "84915666777", "84938999000"
+    ],
+    "syria": [
+        "963931234567", "963944556677", "963988112233", "963991234568", "963955443322",
+        "963937788990", "963941122334", "963989988776", "963995566778", "963951122334"
+    ],
+    "iraq": [
+        "9647701234567", "9647812345678", "9647509876543", "9647901122334", "9647723344556",
+        "9647809988776", "9647511223344", "9647922334455", "9647744556677", "9647833221100"
+    ],
+    "nz": [
+        "64211234567", "64229876543", "64275554433", "64291112233", "64218887766",
+        "64223334455", "64279998877", "64214445566", "64297778899", "64221112233"
+    ]
+}
+
+COUNTRY_NAMES = {
+    "germany": "ألمانيا 🇩🇪",
+    "lebanon": "لبنان 🇱🇧",
+    "vietnam": "فيتنام 🇻🇳",
+    "syria": "سوريا 🇸🇾",
+    "iraq": "العراق 🇮🇶",
+    "nz": "نيوزيلندا 🇳🇿"
+}
 
 def save_user(user_id):
     """دالة لتسجيل المستخدمين الجدد في ملف نصي بدون تكرار"""
     try:
         users = set()
         if os.path.exists("users.txt"):
-            with open("users.txt", "r") as f:
+            with open("users.txt", "r", encoding="utf-8") as f:
                 users = set(f.read().splitlines())
         
         if str(user_id) not in users:
-            with open("users.txt", "a") as f:
+            with open("users.txt", "a", encoding="utf-8") as f:
                 f.write(str(user_id) + "\n")
     except Exception as e:
         print(f"Error saving user: {e}")
@@ -45,8 +81,7 @@ def decorate_english(text):
     return f"✨ 1. Fancy:\n{fancy}\n\n✨ 2. Bold:\n{bold_sans}\n\n✨ 3. Italic:\n{italic}\n\n✨ 4. Gothic:\n{gothic}\n\n✨ 5. Boxed:\n{boxed}\n\n✨ 6. Brackets:\n{brackets}\n\n✨ 7. Flair:\n{flair}"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # تسجيل المستخدم تلقائياً فور ضغطه على /start
-    user_id = update.message.from_user.id
+    user_id = update.effective_user.id
     save_user(user_id)
 
     welcome_text = (
@@ -59,10 +94,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🟢 زخــ🪄ـــارف", callback_data="decor_menu")],
         [InlineKeyboardButton("🔵 صُـنـع pdf 🍀", callback_data="pdf_menu")],
         [InlineKeyboardButton("🟡 تـحـديـد مـوقـع بـرقـم الـهـاتـف", callback_data="location_prompt")],
+        [InlineKeyboardButton("📞 FAKE NUMBER ⚫️", callback_data="fake_number_menu")],
         [InlineKeyboardButton("🟣 صـنـع LINK مـلغـم", url="https://t.me/A7med_foryou_bot")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
+    
+    if update.message:
+        await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
+    elif update.callback_query:
+        await update.callback_query.message.edit_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """أمر خاص بالمطور لمعرفة عدد المستخدمين"""
@@ -73,7 +113,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     count = 0
     if os.path.exists("users.txt"):
-        with open("users.txt", "r") as f:
+        with open("users.txt", "r", encoding="utf-8") as f:
             count = len(f.read().splitlines())
             
     await update.message.reply_text(f"📊 إحصائيات البوت:\n👥 عدد المستخدمين الذين دخلوا البوت: {count} شخصاً.")
@@ -88,8 +128,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     elif query.data == "decor_menu":
         keyboard = [
-            [InlineKeyboardButton("عربـي", callback_data="decor_ar")],
-            [InlineKeyboardButton("انكليزي", callback_data="decor_en")],
+            [InlineKeyboardButton("عربـي", callback_data="decor_ar"), InlineKeyboardButton("انكليزي", callback_data="decor_en")],
             [InlineKeyboardButton("🔙 رجوع", callback_data="back_main")]
         ]
         await query.message.edit_text("اختر لغة الزخرفة المطلوبة:", reply_markup=InlineKeyboardMarkup(keyboard))
@@ -111,20 +150,36 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['mode'] = 'location_phone'
         await query.message.reply_text("ارسل الرقم 📞:")
         
-    elif query.data == "back_main":
-        welcome_text = (
-            "*أهـلاً بـك فـي بـوت ~• 𝓜𝓞7𝓐 •~ يـسـاعـدك هـذا الـبـوت عـلـي الـعـديـد مـن الأشـيـاء وكـلـهـم فـالأسـفـل “ يـقـلـبـوشـتـي 😍*\n"
-            "*تـحـيـاتـي لـك ~,ًاحمد ,ًصبحي~*\n"
-            "*صـانـع ومـطـور هـذا الـبـوت .* "
-        )
+    elif query.data == "fake_number_menu":
         keyboard = [
-            [InlineKeyboardButton("🔴 تحميل بدون علامه مائيه", callback_data="download_prompt")],
-            [InlineKeyboardButton("🟢 زخــ🪄ـــارف", callback_data="decor_menu")],
-            [InlineKeyboardButton("🔵 صُـنـع pdf 🍀", callback_data="pdf_menu")],
-            [InlineKeyboardButton("🟡 تـحـديـد مـوقـع بـرقـم الـهـاتـف", callback_data="location_prompt")],
-            [InlineKeyboardButton("🟣 صـنـع LINK مـلغـم", url="https://t.me/A7med_foryou_bot")]
+            [InlineKeyboardButton("🇩🇪 ألمانيا", callback_data="num_germany"), InlineKeyboardButton("🇱🇧 لبنان", callback_data="num_lebanon")],
+            [InlineKeyboardButton("🇻🇳 فيتنام", callback_data="num_vietnam"), InlineKeyboardButton("🇸🇾 سوريا", callback_data="num_syria")],
+            [InlineKeyboardButton("🇮🇶 العراق", callback_data="num_iraq"), InlineKeyboardButton("🇳🇿 نيوزيلندا", callback_data="num_nz")],
+            [InlineKeyboardButton("🔙 رجوع", callback_data="back_main")]
         ]
-        await query.message.edit_text(welcome_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        await query.message.edit_text("اختر الدولة المطلوبة للحصول على رقم وهمي 🌍:", reply_markup=InlineKeyboardMarkup(keyboard))
+        
+    elif query.data.startswith("num_"):
+        country_key = query.data.replace("num_", "")
+        if country_key in FAKE_NUMBERS:
+            phone_num = random.choice(FAKE_NUMBERS[country_key])
+            c_name = COUNTRY_NAMES.get(country_key, "الدولة")
+            
+            text_msg = (
+                f"🌍 *الدولة:* {c_name}\n\n"
+                f"🔢 *الرقم:* `{phone_num}`\n\n"
+                f"📋 *اضغط مطولاً للنسخ*"
+            )
+            
+            keyboard = [
+                [InlineKeyboardButton("🔄 رقم جديد", callback_data=f"num_{country_key}")],
+                [InlineKeyboardButton("📢 جروب الأكواد", url="https://t.me/A7med_foryou_bot")],
+                [InlineKeyboardButton("🔙 رجوع للدول", callback_data="fake_number_menu")]
+            ]
+            await query.message.edit_text(text_msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+            
+    elif query.data == "back_main":
+        await start(update, context)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
