@@ -133,7 +133,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ck = query.data.replace("num_", "")
         if ck in FAKE_NUMBERS:
             await query.message.edit_text("⏳ جاري فحص السيرفرات واستخراج الرقم الوهمي، يرجى الانتظار دقيقة واحدة...")
-            await asyncio.sleep(60)
+            await asyncio.sleep(5)
             
             pn = random.choice(FAKE_NUMBERS[ck])
             kb = [
