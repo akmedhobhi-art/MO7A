@@ -1,5 +1,6 @@
 import os
 import random
+import asyncio
 import yt_dlp
 from PIL import Image
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -33,7 +34,8 @@ def save_user(user_id):
                 f.write(str(user_id) + "\n")
     except Exception:
         pass
-        def decorate_arabic(text):
+
+def decorate_arabic(text):
     s1 = " ⦙ ".join(list(text))
     s2 = "✨ " + " ̶ ".join(list(text)) + " ✨"
     s3 = "★ " + " • ".join(list(text)) + " ★"
@@ -42,7 +44,7 @@ def save_user(user_id):
 
 def decorate_english(text):
     fancy = text.translate(str.maketrans("abcdefghijklmnopqrstuvwxyz", "ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙ⚥ⓛⓜⓝⓞⓟⓠⓡ🇸ⓣⓤⓥⓦⓧⓨⓩ"))
-    bold_sans = text.translate(str.maketrans("abcdefghijklmnopqrstuvwxyz", "𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇"))
+    bold_sans = text.translate(str.maketrans("abcdefghijklmnopqrstuvwxyz", "𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝗾𝘆𝘇"))
     return f"✨ 1. Fancy:\n{fancy}\n\n✨ 2. Bold:\n{bold_sans}"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -62,7 +64,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
     elif update.callback_query:
         await update.callback_query.message.edit_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
-       async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
         await update.message.reply_text("هذا الأمر للمطور فقط 🚫")
         return
@@ -100,9 +103,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data.startswith("num_"):
         ck = query.data.replace("num_", "")
         if ck in FAKE_NUMBERS:
+            # رسالة الانتظار لمدة دقيقة (60 ثانية)
+            await query.message.edit_text("⏳ جاري فحص السيرفرات واستخراج الرقم الوهمي، يرجى الانتظار دقيقة واحدة...")
+            await asyncio.sleep(60)
+            
             pn = random.choice(FAKE_NUMBERS[ck])
-            kb = [[InlineKeyboardButton("🔄 رقم جديد", callback_data=f"num_{ck}")], [InlineKeyboardButton("🔙 رجوع", callback_data="fake_number_menu")]]
-            await query.message.edit_text(f"🌍 الدولة: {COUNTRY_NAMES.get(ck)}\n🔢 الرقم: `{pn}`", reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
+            kb = [
+                [InlineKeyboardButton("🔄 رقم جديد", callback_data=f"num_{ck}")],
+                [InlineKeyboardButton("🔙 رجوع", callback_data="fake_number_menu")]
+            ]
+            await query.message.edit_text(f"🌍 الدولة: {COUNTRY_NAMES.get(ck)}\n\n🔢 الرقم: `{pn}`\n\n✅ تم استخراج الرقم بنجاح!", reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
     elif query.data == "back_main":
         await start(update, context)
 
@@ -180,4 +190,3 @@ def main():
 
 if __name__ == "__main__":
     main()
- 
