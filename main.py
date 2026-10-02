@@ -6,6 +6,23 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 
 TOKEN = os.environ.get("BOT_TOKEN")
 
+# ضع هنا الآيدي الحقيقي لحسابك على تيليجرام لكي يعمل أمر الإحصائيات معك وحدك
+ADMIN_ID = 123456789  # استبدل هذا الرقم بالآيدي الخاص بك
+
+def save_user(user_id):
+    """دالة لتسجيل المستخدمين الجدد في ملف نصي بدون تكرار"""
+    try:
+        users = set()
+        if os.path.exists("users.txt"):
+            with open("users.txt", "r") as f:
+                users = set(f.read().splitlines())
+        
+        if str(user_id) not in users:
+            with open("users.txt", "a") as f:
+                f.write(str(user_id) + "\n")
+    except Exception as e:
+        print(f"Error saving user: {e}")
+
 def decorate_arabic(text):
     s1 = " ⦙ ".join(list(text))
     s2 = "✨ " + " ̶ ".join(list(text)) + " ✨"
@@ -18,9 +35,9 @@ def decorate_arabic(text):
     return f"🔹 الشكل 1:\n{s1}\n\n🔹 الشكل 2:\n{s2}\n\n🔹 الشكل 3:\n{s3}\n\n🔹 الشكل 4:\n{s4}\n\n🔹 الشكل 5:\n{s5}\n\n🔹 الشكل 6:\n{s6}\n\n🔹 الشكل 7:\n{s7}\n\n🔹 الشكل 8:\n{s8}"
 
 def decorate_english(text):
-    fancy = text.translate(str.maketrans("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", "ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙ⚥ⓛⓜⓝⓞⓟⓠⓡ🇸ⓣⓤⓥⓦⓧⓨⓩⒶⒷⒸⒹ🇪ⓕⒼⒽⒾⒿⓀⓁⓂⓃ𝓞ⓅⓆⓇⓈⓉⓊⓋⓌ𝓍ⓎⓏ"))
-    bold_sans = text.translate(str.maketrans("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", "𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭"))
-    italic = text.translate(str.maketrans("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", "𝘢𝘣𝘤𝘥𝘦𝘧𝘨𝘩𝘪𝘫𝘬𝘭𝘮𝘯𝘰𝘱𝘲𝘳𝘴𝘵𝘂𝘷𝘸𝘹𝘺𝘻𝘈𝘉𝘊𝘋𝘌𝘍𝘎𝘏𝘐𝑑𝘒𝘔𝘕𝘖𝘗𝘘𝘙𝘚𝘛𝘜𝘝𝘞𝘟𝘠𝘡"))
+    fancy = text.translate(str.maketrans("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", "ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙ⚥ⓛⓜⓝⓞⓟⓠⓡ🇸ⓣⓤⓥⓦⓧⓨⓩⒶⒷⒸⒹ🇪ⓕⒼⒽⒾⒿⓀⓁⓂⓃ𝓞ⓅⓆⓇⓈⓉⓊⓋⓌ𝓍𝓎𝓏"))
+    bold_sans = text.translate(str.maketrans("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", "𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡OP𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭"))
+    italic = text.translate(str.maketrans("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", "𝘢𝘣𝘤𝘥𝘦𝘧𝘨𝘩𝘪𝘫𝘬𝘭mbn𝘰𝘱𝘲𝘳𝘴𝘵𝘂𝘷𝘸𝘹𝘺𝘻𝘈𝘉𝘊𝘋𝘌𝘍𝘎𝘏𝘐𝘫𝘒𝘔𝘕𝘖𝘗𝘘𝘙𝘚𝘛𝘜𝘝𝘞𝘟𝘠𝘡"))
     gothic = text.translate(str.maketrans("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", "𝔞𝔟𝔠𝔡𝔢𝔣𝔤𝔥𝔦𝔧𝔨𝔩𝔪𝔫𝔬𝔭𝔮𝔯𝔰𝔱𝔲𝔳𝔴𝔵𝔶𝔷𝔄𝔅ℭ𝔇𝔈𝔉𝔊ℌℑ𝔍𝔎𝔏𝔐𝔑𝔒𝔓𝔔ℜ𝔖𝔗𝘘𝔙𝔚𝔛𝔜ℨ"))
     boxed = " 🔲 ".join(list(text))
     brackets = "【 " + text + " 】"
@@ -28,6 +45,10 @@ def decorate_english(text):
     return f"✨ 1. Fancy:\n{fancy}\n\n✨ 2. Bold:\n{bold_sans}\n\n✨ 3. Italic:\n{italic}\n\n✨ 4. Gothic:\n{gothic}\n\n✨ 5. Boxed:\n{boxed}\n\n✨ 6. Brackets:\n{brackets}\n\n✨ 7. Flair:\n{flair}"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # تسجيل المستخدم تلقائياً فور ضغطه على /start
+    user_id = update.message.from_user.id
+    save_user(user_id)
+
     welcome_text = (
         "*أهـلاً بـك فـي بـوت ~• 𝓜𝓞7𝓐 •~ يـسـاعـدك هـذا الـبـوت عـلـي الـعـديـد مـن الأشـيـاء وكـلـهـم فـالأسـفـل “ يـقـلـبـوشـتـي 😍*\n"
         "*تـحـيـاتـي لـك ~,ًاحمد ,ًصبحي~*\n"
@@ -42,6 +63,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
+
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """أمر خاص بالمطور لمعرفة عدد المستخدمين"""
+    user_id = update.message.from_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("هذا الأمر مخصص للمطور فقط 🚫")
+        return
+    
+    count = 0
+    if os.path.exists("users.txt"):
+        with open("users.txt", "r") as f:
+            count = len(f.read().splitlines())
+            
+    await update.message.reply_text(f"📊 إحصائيات البوت:\n👥 عدد المستخدمين الذين دخلوا البوت: {count} شخصاً.")
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -171,6 +206,7 @@ async def handle_text_commands(update: Update, context: ContextTypes.DEFAULT_TYP
 def main():
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("stats", stats_command))  # أمر الإحصائيات للمطور
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_commands))
