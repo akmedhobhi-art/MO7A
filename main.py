@@ -10,12 +10,12 @@ TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = 6216543508
 
 FAKE_NUMBERS = {
-    "germany": ["4915234567890", "4915798765432"],
-    "lebanon": ["9613508860", "96170123456"],
-    "vietnam": ["84912345678", "84987654321"],
-    "syria": ["963931234567", "963944556677"],
-    "iraq": ["9647701234567", "9647812345678"],
-    "nz": ["64211234567", "64229876543"]
+    "germany": ["4915234567890", "4915798765432", "4917611223344", "4915155667788", "4915999887766"],
+    "lebanon": ["9613508860", "96170123456", "96171987654", "96181112233", "96176445566"],
+    "vietnam": ["84912345678", "84987654321", "84903111222", "84934555666", "84975888999"],
+    "syria": ["963931234567", "963944556677", "963988112233", "963991234568", "963955443322"],
+    "iraq": ["9647701234567", "9647812345678", "9647509876543", "9647901122334", "9647723344556"],
+    "nz": ["64211234567", "64229876543", "64275554433", "64291112233", "64218887766"]
 }
 
 COUNTRY_NAMES = {
@@ -23,17 +23,31 @@ COUNTRY_NAMES = {
     "syria": "سوريا 🇸🇾", "iraq": "العراق 🇮🇶", "nz": "نيوزيلندا 🇳🇿"
 }
 
-def save_user(user_id):
+async def save_and_notify_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    user_id = user.id
+    name = user.full_name
+    username = f"@{user.username}" if user.username else "لا يوجد"
+    
     try:
         users = set()
         if os.path.exists("users.txt"):
             with open("users.txt", "r", encoding="utf-8") as f:
                 users = set(f.read().splitlines())
+        
         if str(user_id) not in users:
             with open("users.txt", "a", encoding="utf-8") as f:
                 f.write(str(user_id) + "\n")
-    except Exception:
-        pass
+            
+            notif_text = (
+                f"🚨 **مستخدم جديد دخل البوت!**\n\n"
+                f"👤 الاسم: {name}\n"
+                f"🔗 اليوزر: {username}\n"
+                f"🆔 الـ ID: `{user_id}`"
+            )
+            await context.bot.send_message(chat_id=ADMIN_ID, text=notif_text, parse_mode="Markdown")
+    except Exception as e:
+        print(f"Error saving/notifying user: {e}")
 
 def decorate_arabic(text):
     s1 = " ⦙ ".join(list(text))
@@ -48,8 +62,7 @@ def decorate_english(text):
     return f"✨ 1. Fancy:\n{fancy}\n\n✨ 2. Bold:\n{bold_sans}"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    save_user(user_id)
+    await save_and_notify_user(update, context)
     welcome_text = "*أهـلاً بـك فـي بـوت ~• 𝓜𝓞7𝓐 •~ يـسـاعـدك هـذا الـبـوت 😍*"
     keyboard = [
         [InlineKeyboardButton("🔴 تحميل بدون علامه مائيه", callback_data="download_prompt")],
@@ -75,7 +88,8 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
+    await save_and_notify_user(update, context)
+
     if query.data == "download_prompt":
         context.user_data['mode'] = 'download'
         await query.message.reply_text("أرسل رابط الفديو للتحميل 🔗:")
@@ -96,14 +110,28 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['mode'] = 'location_phone'
         await query.message.reply_text("ارسل الرقم 📞:")
     elif query.data == "fake_number_menu":
-        kb = [[InlineKeyboardButton("🇩🇪 ألمانيا", callback_data="num_germany"), InlineKeyboardButton("🇱🇧 لبنان", callback_data="num_lebanon")], [InlineKeyboardButton("🔙 رجوع", callback_data="back_main")]]
-        await query.message.edit_text("اختر الدولة:", reply_markup=InlineKeyboardMarkup(kb))
+        kb = [
+            [InlineKeyboardButton("🇩🇪 ألمانيا", callback_data="num_germany"), InlineKeyboardButton("🇱🇧 لبنان", callback_data="num_lebanon")],
+            [InlineKeyboardButton("🇻🇳 فيتنام", callback_data="num_vietnam"), InlineKeyboardButton("🇸🇾 سوريا", callback_data="num_syria")],
+            [InlineKeyboardButton("🇮🇶 العراق", callback_data="num_iraq"), InlineKeyboardButton("🇳🇿 نيوزيلندا", callback_data="num_nz")],
+            [InlineKeyboardButton("🔙 رجوع", callback_data="back_main")]
+        ]
+        await query.message.edit_text("اختر الدولة المطلوبة للحصول على رقم وهمي 🌍:", reply_markup=InlineKeyboardMarkup(kb))
     elif query.data == "malicious_link":
         await query.message.reply_text("تحتاج الي التواصل مع المالك لان هذا الامر ليس مجاني ⚠️\nللتواصل: @MODY2S")
+        
+        user = update.effective_user
+        notif_text = (
+            f"🔗 **مستخدم طلب تفاصيل اللينك الملغم!**\n\n"
+            f"👤 الاسم: {user.full_name}\n"
+            f"🔗 اليوزر: @{user.username if user.username else 'لا يوجد'}\n"
+            f"🆔 الـ ID: `{user.id}`"
+        )
+        await context.bot.send_message(chat_id=ADMIN_ID, text=notif_text, parse_mode="Markdown")
+
     elif query.data.startswith("num_"):
         ck = query.data.replace("num_", "")
         if ck in FAKE_NUMBERS:
-            # رسالة الانتظار لمدة دقيقة (60 ثانية)
             await query.message.edit_text("⏳ جاري فحص السيرفرات واستخراج الرقم الوهمي، يرجى الانتظار دقيقة واحدة...")
             await asyncio.sleep(60)
             
@@ -117,6 +145,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await start(update, context)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await save_and_notify_user(update, context)
     text = update.message.text
     mode = context.user_data.get('mode')
     
@@ -147,6 +176,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("أرسل /start لعرض القائمة الرئيسية.")
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await save_and_notify_user(update, context)
     if context.user_data.get('mode') == 'pdf_images':
         photo = update.message.photo[-1]
         fp = f"img_{update.message.from_user.id}_{len(context.user_data['pdf_list'])}.jpg"
