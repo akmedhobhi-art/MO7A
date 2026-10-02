@@ -10,6 +10,9 @@ TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = 6216543508
 
 FAKE_NUMBERS = {
+    "egypt": ["201012345678", "201123456789", "201234567890", "201598765432", "201098765432"],
+    "ksa": ["966501234567", "966551234567", "966541234567", "966561234567", "966531234567"],
+    "usa": ["12015550111", "12025550143", "13125550178", "1415550199", "12125550123"],
     "germany": ["4915234567890", "4915798765432", "4917611223344", "4915155667788", "4915999887766"],
     "lebanon": ["9613508860", "96170123456", "96171987654", "96181112233", "96176445566"],
     "vietnam": ["84912345678", "84987654321", "84903111222", "84934555666", "84975888999"],
@@ -19,6 +22,7 @@ FAKE_NUMBERS = {
 }
 
 COUNTRY_NAMES = {
+    "egypt": "مصر 🇪🇬", "ksa": "السعودية 🇸🇦", "usa": "أمريكا 🇺🇸",
     "germany": "ألمانيا 🇩🇪", "lebanon": "لبنان 🇱🇧", "vietnam": "فيتنام 🇻🇳",
     "syria": "سوريا 🇸🇾", "iraq": "العراق 🇮🇶", "nz": "نيوزيلندا 🇳🇿"
 }
@@ -38,12 +42,10 @@ async def save_and_notify_user(update: Update, context: ContextTypes.DEFAULT_TYP
             with open("users.txt", "r", encoding="utf-8") as f:
                 users = set(f.read().splitlines())
         
-        # إذا لم يكن المستخدم موجوداً في الملف
         if str(user_id) not in users:
             with open("users.txt", "a", encoding="utf-8") as f:
                 f.write(str(user_id) + "\n")
             
-            # إرسال إشعار للمطور (طالما ليس المطور هو من يدخل لأول مرة، أو حتى لو أردت رؤيته استبعد شرط المطور)
             if user_id != ADMIN_ID:
                 notif_text = (
                     f"🚨 **مستخدم جديد دخل البوت!**\n\n"
@@ -52,8 +54,6 @@ async def save_and_notify_user(update: Update, context: ContextTypes.DEFAULT_TYP
                     f"🆔 الـ ID: `{user_id}`"
                 )
                 await context.bot.send_message(chat_id=ADMIN_ID, text=notif_text, parse_mode="Markdown")
-        
-        # ملاحظة: إذا أردت أن يأتيك إشعار حتى لو دخلت أنت بنفسك للتجربة، يمكنك حذف شرط (user_id != ADMIN_ID) في الأعلى.
     except Exception as e:
         print(f"Error saving/notifying user: {e}")
 
@@ -109,7 +109,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text("ارسـل الاسـم لـلـزخـرفـة ✍️:")
     elif query.data == "decor_en":
         context.user_data['mode'] = 'decor_en'
-        await query.message.reply_text("ارسـل الاسـم لـلـزخـرفـة ✍️:")
+        await query.message.reply_text("ارسـل الاسـم لـلـزخـرفـة ✍️️:")
     elif query.data == "pdf_menu":
         context.user_data['mode'] = 'pdf_images'
         context.user_data['pdf_list'] = []
@@ -119,9 +119,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text("ارسل الرقم 📞:")
     elif query.data == "fake_number_menu":
         kb = [
-            [InlineKeyboardButton("🇩🇪 ألمانيا", callback_data="num_germany"), InlineKeyboardButton("🇱🇧 لبنان", callback_data="num_lebanon")],
-            [InlineKeyboardButton("🇻🇳 فيتنام", callback_data="num_vietnam"), InlineKeyboardButton("🇸🇾 سوريا", callback_data="num_syria")],
-            [InlineKeyboardButton("🇮🇶 العراق", callback_data="num_iraq"), InlineKeyboardButton("🇳🇿 نيوزيلندا", callback_data="num_nz")],
+            [InlineKeyboardButton("🇪🇬 مصر", callback_data="num_egypt"), InlineKeyboardButton("🇸🇦 السعودية", callback_data="num_ksa")],
+            [InlineKeyboardButton("🇺🇸 أمريكا", callback_data="num_usa"), InlineKeyboardButton("🇩🇪 ألمانيا", callback_data="num_germany")],
+            [InlineKeyboardButton("🇱🇧 لبنان", callback_data="num_lebanon"), InlineKeyboardButton("🇻🇳 فيتنام", callback_data="num_vietnam")],
+            [InlineKeyboardButton("🇸🇾 سوريا", callback_data="num_syria"), InlineKeyboardButton("🇮🇶 العراق", callback_data="num_iraq")],
+            [InlineKeyboardButton("🇳🇿 نيوزيلندا", callback_data="num_nz")],
             [InlineKeyboardButton("🔙 رجوع", callback_data="back_main")]
         ]
         await query.message.edit_text("اختر الدولة المطلوبة للحصول على رقم وهمي 🌍:", reply_markup=InlineKeyboardMarkup(kb))
@@ -195,7 +197,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await save_and_notify_user(update, context)
     if context.user_data.get('mode') == 'pdf_images':
         photo = update.message.photo[-1]
-        fp = f"img_{update.message.from_user.id}_{len(context.user_data['pdf_list'])} .jpg"
+        fp = f"img_{update.message.from_user.id}_{len(context.user_data['pdf_list'])}.jpg"
         await (await context.bot.get_file(photo.file_id)).download_to_drive(fp)
         context.user_data['pdf_list'].append(fp)
         await update.message.reply_text(f"تم استقبال الصورة! (إجمالي: {len(context.user_data['pdf_list'])}). اكتب (تم) للإنهاء.")
@@ -203,7 +205,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("اضغط على زر صُـنـع pdf أولاً.")
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get('mode'] == 'pdf_images' and update.message.text.strip().lower() == "تم":
+    if context.user_data.get('mode') == 'pdf_images' and update.message.text.strip().lower() == "تم":
         plist = context.user_data.get('pdf_list', [])
         if not plist:
             await update.message.reply_text("لم ترسل أي صور!")
