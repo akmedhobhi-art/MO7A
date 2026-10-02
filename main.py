@@ -132,15 +132,24 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data.startswith("num_"):
         ck = query.data.replace("num_", "")
         if ck in FAKE_NUMBERS:
-            await query.message.edit_text("⏳ جاري فحص السيرفرات واستخراج الرقم الوهمي، يرجى الانتظار دقيقة واحدة...")
-            await asyncio.sleep(5)
-            
             pn = random.choice(FAKE_NUMBERS[ck])
             kb = [
                 [InlineKeyboardButton("🔄 رقم جديد", callback_data=f"num_{ck}")],
                 [InlineKeyboardButton("🔙 رجوع", callback_data="fake_number_menu")]
             ]
-            await query.message.edit_text(f"🌍 الدولة: {COUNTRY_NAMES.get(ck)}\n\n🔢 الرقم: `{pn}`\n\n✅ تم استخراج الرقم بنجاح!", reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
+            await query.message.edit_text(
+                f"🌍 الدولة: {COUNTRY_NAMES.get(ck)}\n\n"
+                f"🔢 الرقم: `{pn}`\n\n"
+                f"✅ تم استخراج الرقم بنجاح!\n\n"
+                f"📌 استخدم الرقم في التطبيق الذي تريده وسيصلك الكود على هذا البوت.",
+                reply_markup=InlineKeyboardMarkup(kb),
+                parse_mode="Markdown"
+            )
+            
+            # الانتظار لمدة دقيقة (60 ثانية) ثم إرسال الكود
+            await asyncio.sleep(60)
+            await query.message.reply_text(f"📩 كود التحقق الخاص بك:\n`57993`", parse_mode="Markdown")
+
     elif query.data == "back_main":
         await start(update, context)
 
