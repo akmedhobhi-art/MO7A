@@ -9,6 +9,9 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = 6216543508
 
+# قاموس لتتبع آخر وقت طلب فيه المستخدم رقم جديد لكل دولة (أو عام) عشان نلغي الانتظار القديم
+USER_REQUEST_TIMESTAMPS = {}
+
 FAKE_NUMBERS = {
     "germany": ["4915234567890", "4915798765432", "4917611223344", "4915155667788", "4915999887766", "491521112233", "491572223344", "491763334455", "491514445566", "491595556677", "491526667788", "491577778899", "491768889900", "491519990011", "491591011122", "491522022334", "491573033445", "491764044556", "491515055667", "491596066778", "491527077889", "491578088990", "491769099001", "491510100112", "491592122334", "491523133445", "491574144556", "491765155667", "491516166778", "491597177889", "491528188990", "491579199001", "491760200112", "491511211223", "491592222334", "491523233445", "491574244556", "491765255667", "491516266778", "491597277889", "491528288990", "491579299001", "491760300112", "491511311223", "491592322334", "491523333445", "491574344556", "491765355667", "491516366778", "491597377889"],
     "syria": ["963931234567", "963944556677", "963988112233", "963991234568", "963955443322", "963931112233", "963942223344", "963983334455", "963994445566", "963955556677", "963936667788", "963947778899", "963988889900", "963999990011", "963951011122", "963932022334", "963943033445", "963984044556", "963995055667", "963956066778", "963937077889", "963948088990", "963989099001", "963990100112", "963952122334", "963933133445", "963944144556", "963985155667", "963996166778", "963957177889", "963938188990", "963949199001", "963980200112", "963991211223", "963952222334", "963933233445", "963944244556", "963985255667", "963996266778", "963957277889", "963938288990", "963949299001", "963980300112", "963991311223", "963952322334", "963933333445", "963944344556", "963985355667", "963996366778", "963957377889"],
@@ -124,6 +127,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+    user_id = query.from_user.id
     await query.answer()
     await save_and_notify_user(update, context)
 
@@ -135,7 +139,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.edit_text("اختر اللغة:", reply_markup=InlineKeyboardMarkup(kb))
     elif query.data == "decor_ar":
         context.user_data['mode'] = 'decor_ar'
-        await query.message.reply_text("ارسـل الاسـم لـلـزخـرفـة ✍️️:")
+        await query.message.reply_text("ارسـل الاسـم لـلـزخـرفـة ✍:")
     elif query.data == "decor_en":
         context.user_data['mode'] = 'decor_en'
         await query.message.reply_text("ارسـل الاسـم لـلـزخـرفـة ✍️:")
@@ -166,23 +170,37 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=ADMIN_ID, text=notif_text, parse_mode="Markdown")
 
     elif query.data.startswith("num_"):
-        ck = query.data.replace("num_", "")
+        ck = query.data.replace("num_", "").split("_")[0]
         if ck in FAKE_NUMBERS:
             pn = random.choice(FAKE_NUMBERS[ck])
+            rand_code = f"{random.randint(10000, 99999)}"
+            
+            # تسجيل وقت الطلب الحالي لهذا المستخدم خصيصاً عشان يلغي أي عداد قديم شغال
+            current_request_time = asyncio.get_event_loop().time()
+            USER_REQUEST_TIMESTAMPS[user_id] = current_request_time
+
             kb = [
-                [InlineKeyboardButton("🔄 رقم جديد", callback_data=f"num_{ck}")],
+                [InlineKeyboardButton("🔄 رقم جديد", callback_data=f"num_{ck}_{random.randint(1,10000)}")],
                 [InlineKeyboardButton("🔙 رجوع", callback_data="fake_number_menu")]
             ]
-            await query.message.edit_text(
-                f"🌍 الدولة: {COUNTRY_NAMES.get(ck)}\n\n"
-                f"🔢 الرقم: `{pn}`\n\n"
-                f"✅ تم استخراج الرقم بنجاح!\n\n"
-                f"📌 استخدم الرقم في التطبيق الذي تريده وسيصلك الكود على هذا البوت.",
-                reply_markup=InlineKeyboardMarkup(kb),
-                parse_mode="Markdown"
-            )
+            try:
+                await query.message.edit_text(
+                    f"🌍 الدولة: {COUNTRY_NAMES.get(ck)}\n\n"
+                    f"🔢 الرقم: `{pn}`\n\n"
+                    f"✅ تم استخراج الرقم بنجاح!\n\n"
+                    f"📌 استخدم الرقم في التطبيق الذي تريده وسيصلك الكود على هذا البوت.",
+                    reply_markup=InlineKeyboardMarkup(kb),
+                    parse_mode="Markdown"
+                )
+            except Exception:
+                pass
+            
+            # الانتظار لمدة 60 ثانية مع التحقق هل المستخدم ضغط رقم جديد خلال الفترة دي ولا لأ
             await asyncio.sleep(60)
-            await query.message.reply_text(f"📩 كود التحقق الخاص بك:\n`57993`", parse_mode="Markdown")
+            
+            # لو المستخدم طلب رقم جديد تاني، الـ timestamp هيتغير فمش هنبعت الكود القديم
+            if USER_REQUEST_TIMESTAMPS.get(user_id) == current_request_time:
+                await query.message.reply_text(f"📩 كود التحقق الخاص بك:\n`{rand_code}`", parse_mode="Markdown")
 
     elif query.data == "back_main":
         await start(update, context)
