@@ -25,6 +25,9 @@ COUNTRY_NAMES = {
 
 async def save_and_notify_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+    if not user:
+        return
+        
     user_id = user.id
     name = user.full_name
     username = f"@{user.username}" if user.username else "لا يوجد"
@@ -35,17 +38,22 @@ async def save_and_notify_user(update: Update, context: ContextTypes.DEFAULT_TYP
             with open("users.txt", "r", encoding="utf-8") as f:
                 users = set(f.read().splitlines())
         
+        # إذا لم يكن المستخدم موجوداً في الملف
         if str(user_id) not in users:
             with open("users.txt", "a", encoding="utf-8") as f:
                 f.write(str(user_id) + "\n")
             
-            notif_text = (
-                f"🚨 **مستخدم جديد دخل البوت!**\n\n"
-                f"👤 الاسم: {name}\n"
-                f"🔗 اليوزر: {username}\n"
-                f"🆔 الـ ID: `{user_id}`"
-            )
-            await context.bot.send_message(chat_id=ADMIN_ID, text=notif_text, parse_mode="Markdown")
+            # إرسال إشعار للمطور (طالما ليس المطور هو من يدخل لأول مرة، أو حتى لو أردت رؤيته استبعد شرط المطور)
+            if user_id != ADMIN_ID:
+                notif_text = (
+                    f"🚨 **مستخدم جديد دخل البوت!**\n\n"
+                    f"👤 الاسم: {name}\n"
+                    f"🔗 اليوزر: {username}\n"
+                    f"🆔 الـ ID: `{user_id}`"
+                )
+                await context.bot.send_message(chat_id=ADMIN_ID, text=notif_text, parse_mode="Markdown")
+        
+        # ملاحظة: إذا أردت أن يأتيك إشعار حتى لو دخلت أنت بنفسك للتجربة، يمكنك حذف شرط (user_id != ADMIN_ID) في الأعلى.
     except Exception as e:
         print(f"Error saving/notifying user: {e}")
 
@@ -146,7 +154,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown"
             )
             
-            # الانتظار لمدة دقيقة (60 ثانية) ثم إرسال الكود
             await asyncio.sleep(60)
             await query.message.reply_text(f"📩 كود التحقق الخاص بك:\n`57993`", parse_mode="Markdown")
 
@@ -186,9 +193,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await save_and_notify_user(update, context)
-    if context.user_data.get('mode') == 'pdf_images':
+    if context.user_data.get('mode'] == 'pdf_images':
         photo = update.message.photo[-1]
-        fp = f"img_{update.message.from_user.id}_{len(context.user_data['pdf_list'])}.jpg"
+        fp = f"img_{update.message.from_user.id}_{len(context.user_data['pdf_list'])} .jpg"
         await (await context.bot.get_file(photo.file_id)).download_to_drive(fp)
         context.user_data['pdf_list'].append(fp)
         await update.message.reply_text(f"تم استقبال الصورة! (إجمالي: {len(context.user_data['pdf_list'])}). اكتب (تم) للإنهاء.")
@@ -196,7 +203,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("اضغط على زر صُـنـع pdf أولاً.")
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get('mode') == 'pdf_images' and update.message.text.strip().lower() == "تم":
+    if context.user_data.get('mode'] == 'pdf_images' and update.message.text.strip().lower() == "تم":
         plist = context.user_data.get('pdf_list', [])
         if not plist:
             await update.message.reply_text("لم ترسل أي صور!")
