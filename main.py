@@ -5,11 +5,11 @@ import yt_dlp
 from PIL import Image
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
+from telegram.error import BadRequest
 
 TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = 6216543508
 
-# قاموس لتتبع آخر وقت طلب فيه المستخدم رقم جديد لكل دولة (أو عام) عشان نلغي الانتظار القديم
 USER_REQUEST_TIMESTAMPS = {}
 
 FAKE_NUMBERS = {
@@ -128,7 +128,11 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
+        
     await save_and_notify_user(update, context)
 
     if query.data == "download_prompt":
@@ -157,7 +161,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("🇳🇿 نيوزيلندا", callback_data="num_nz")],
             [InlineKeyboardButton("🔙 رجوع", callback_data="back_main")]
         ]
-        await query.message.edit_text("اختر الدولة المطلوبة للحصول على رقم وهمي 🌍:", reply_markup=InlineKeyboardMarkup(kb))
+        try:
+            await query.message.edit_text("اختر الدولة المطلوبة للحصول على رقم وهمي 🌍:", reply_markup=InlineKeyboardMarkup(kb))
+        except BadRequest:
+            pass
     elif query.data == "malicious_link":
         await query.message.reply_text("تحتاج الي التواصل مع المالك لان هذا الامر ليس مجاني ⚠️\nللتواصل: @MODY2S")
         user = update.effective_user
@@ -175,12 +182,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pn = random.choice(FAKE_NUMBERS[ck])
             rand_code = f"{random.randint(10000, 99999)}"
             
-            # تسجيل وقت الطلب الحالي لهذا المستخدم خصيصاً عشان يلغي أي عداد قديم شغال
             current_request_time = asyncio.get_event_loop().time()
             USER_REQUEST_TIMESTAMPS[user_id] = current_request_time
 
+            # إضافة مسافة خفية أو عنصر متغير في النص لضمان قبول تيليجرام لتحديث الرسالة بدون خطأ
+            invisible_salt = f"‎" * random.randint(1, 5)
+
             kb = [
-                [InlineKeyboardButton("🔄 رقم جديد", callback_data=f"num_{ck}_{random.randint(1,10000)}")],
+                [InlineKeyboardButton("🔄 رقم جديد", callback_data=f"num_{ck}_{random.randint(1,100000)}")],
                 [InlineKeyboardButton("🔙 رجوع", callback_data="fake_number_menu")]
             ]
             try:
@@ -188,22 +197,28 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"🌍 الدولة: {COUNTRY_NAMES.get(ck)}\n\n"
                     f"🔢 الرقم: `{pn}`\n\n"
                     f"✅ تم استخراج الرقم بنجاح!\n\n"
-                    f"📌 استخدم الرقم في التطبيق الذي تريده وسيصلك الكود على هذا البوت.",
+                    f"📌 استخدم الرقم في التطبيق الذي تريده وسيصلك الكود على هذا البوت.{invisible_salt}",
                     reply_markup=InlineKeyboardMarkup(kb),
                     parse_mode="Markdown"
                 )
+            except BadRequest:
+                pass
             except Exception:
                 pass
             
-            # الانتظار لمدة 60 ثانية مع التحقق هل المستخدم ضغط رقم جديد خلال الفترة دي ولا لأ
             await asyncio.sleep(60)
             
-            # لو المستخدم طلب رقم جديد تاني، الـ timestamp هيتغير فمش هنبعت الكود القديم
             if USER_REQUEST_TIMESTAMPS.get(user_id) == current_request_time:
-                await query.message.reply_text(f"📩 كود التحقق الخاص بك:\n`{rand_code}`", parse_mode="Markdown")
+                try:
+                    await query.message.reply_text(f"📩 كود التحقق الخاص بك:\n`{rand_code}`", parse_mode="Markdown")
+                except Exception:
+                    pass
 
     elif query.data == "back_main":
-        await start(update, context)
+        try:
+            await start(update, context)
+        except Exception:
+            pass
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await save_and_notify_user(update, context)
