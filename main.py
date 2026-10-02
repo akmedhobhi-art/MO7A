@@ -193,7 +193,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await save_and_notify_user(update, context)
-    if context.user_data.get('mode'] == 'pdf_images':
+    if context.user_data.get('mode') == 'pdf_images':
         photo = update.message.photo[-1]
         fp = f"img_{update.message.from_user.id}_{len(context.user_data['pdf_list'])} .jpg"
         await (await context.bot.get_file(photo.file_id)).download_to_drive(fp)
