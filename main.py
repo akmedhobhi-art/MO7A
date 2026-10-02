@@ -7,7 +7,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 TOKEN = os.environ.get("BOT_TOKEN")
 
 # ضع هنا الآيدي الحقيقي لحسابك على تيليجرام لكي يعمل أمر الإحصائيات معك وحدك
-ADMIN_ID = 123456789  # استبدل هذا الرقم بالآيدي الخاص بك
+ADMIN_ID = 6216543508  # استبدل هذا الرقم بالآيدي الخاص بك
 
 def save_user(user_id):
     """دالة لتسجيل المستخدمين الجدد في ملف نصي بدون تكرار"""
