@@ -118,7 +118,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "كل ماتريده موجود في هذا البوت يا \"قـلـبـوشـتـي😍\"\n\n"
         "مع تحـياتـي لـك\n"
         "\"أحــمــد صــبــحــي\" صـانـع ومـطـور هـذا الـبـوت\n\n"
-        "                    ♥️♥️♥️♥️♥️"
+        "                    ♥️♥️♥️♥️♥️️"
     )
     keyboard = [
         [InlineKeyboardButton("🔴 تحميل بدون علامه مائيه", callback_data="download_prompt")],
@@ -195,7 +195,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ck = query.data.replace("num_", "").split("_")[0]
         if ck in FAKE_NUMBERS:
             pn = random.choice(FAKE_NUMBERS[ck])
-            rand_code = f"{random.randint(10000, 99999)}"
+            # تم التعديل هنا ليصبح كود التحقق مكوناً من 6 أرقام
+            rand_code = f"{random.randint(100000, 999999)}"
             invisible_salt = f"‎" * random.randint(1, 5)
 
             kb = [
